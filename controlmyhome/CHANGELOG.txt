@@ -1,0 +1,11 @@
+controlmyhome - forked from homecontrol4me 1.1
+
+v0.1
+- Removed Authentication for now
+- Removed DHCP for now
+- Compiles on Arduino 1.0.1 SDK
+
+----- fork from homecontrol4me 1.1
+
+v1.1
+- Sende- und Empfangsqualität verbessert, es wird gewartet - bis die Fernbedienung aufhört zu senden.
