@@ -2,8 +2,6 @@
 controlmyhome - Stephan Heuser (stephan.heuser@gmail.com)
 based on: 
 
-homecontrol 4 me - Receiver - Test v1
-
 homecontrol 4 me - Arduino Sketch for home control
 Copyright (c) 2012 Fabian Behnke All right reserved.
 
@@ -58,7 +56,7 @@ Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 #include <Streaming.h>
 #include <WebServer.h>
 #include "eeprom.h"
-#include <EthernetDHCP.h>
+#include <Ethernet.h>
 #include <RCSwitch.h>
 
 //Defines
@@ -67,6 +65,7 @@ Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 #define NAMELEN 10
 #define VALUELEN 22
 
+#define WEBDUINO_SERIAL_DEBUGGING 1
 
 // -------------------- Global Vars -------------------------
 // Network configuration in EEPROM
@@ -95,55 +94,34 @@ void switchWirelessOutlet(int number){
   int numberStk = number % 5;
   if (numberStk == 0) numberStk = 5;
 
+  int numberStkIT = (number-144) % 4;
+  if (numberStkIT == 0) numberStkIT = 4;
+
   if (powerOutlet[number] == false){ 
-    mySwitch.switchOn(int2bin(((number-1)/5)+1), numberStk);
-    powerOutlet[number] = true;
+    if (number > 144){
+      mySwitch.switchOn('a',((((number-144)-1)/4)+1), numberStkIT);  
+      powerOutlet[number] = true;
+    }else{
+      mySwitch.switchOn(int2bin(((number-1)/5)+1), numberStk);
+      powerOutlet[number] = true;
+    }
   } else{
-    if (powerOutlet[number] == true){ 
-      mySwitch.switchOff(int2bin(((number-1)/5)+1), numberStk);
-      powerOutlet[number] = false;
+    if (number > 144){
+        mySwitch.switchOff('a',((((number-144)-1)/4)+1), numberStkIT);  
+        powerOutlet[number] = false;
+    }else{
+        mySwitch.switchOff(int2bin(((number-1)/5)+1), numberStk);
+        powerOutlet[number] = false;
     } 
   }
   
   delay(10);
-//  mySwitch.enableReceive(0, output);
+  mySwitch.enableReceive(0);
 }
 //--------------- receive  ---------------------------
 unsigned long switchMillis;
 boolean switchOutletOn[4];
 boolean switchOutletOff[4];
-void output(unsigned long decimal, unsigned int length, unsigned int delay, unsigned int* raw) {
-  switchMillis = millis();
-  if (decimal != 0) {
-    if (decimal == 5588305 && powerOutlet[eeprom.data.number[0]] == false){
-      switchOutletOn[0] = true;
-    }
-    if (decimal == 5588308 && powerOutlet[eeprom.data.number[0]] == true){
-      switchOutletOff[0] = true;
-    }
-  
-    if (decimal == 5591377 && powerOutlet[eeprom.data.number[1]] == false){
-      switchOutletOn[1] = true;
-    }
-    if (decimal == 5591380 && powerOutlet[eeprom.data.number[1]] == true){
-      switchOutletOff[1] = true;
-    }
-  
-    if (decimal == 5592145 && powerOutlet[eeprom.data.number[2]] == false){
-      switchOutletOn[2] = true;
-    }
-    if (decimal == 5592148 && powerOutlet[eeprom.data.number[2]] == true){
-      switchOutletOff[2] = true;
-    }
-    
-    if (decimal == 5592337 && powerOutlet[eeprom.data.number[3]] == false){
-      switchOutletOn[3] = true;
-    }
-    if (decimal == 5592415 && powerOutlet[eeprom.data.number[3]] == true){
-      switchOutletOff[3] = true;
-    }
-  } 
-}
 
 
 // --------- convert byte to hex-string function ------------
@@ -172,18 +150,19 @@ boolean resetSytem = false;
 
 // ----------------- Arduino SETUP -------------------------
 void setup() {
+  Serial.begin(9600);
   // Transmitter is connected to Arduino Pin #7  
   mySwitch.enableTransmit(7);
   
   //Receiver is on Interrupt 0 - Arduino Pin #2  
-//  mySwitch.enableReceive(0, output);
+  mySwitch.enableReceive(0);
  
   // Optional set pulse length.
   mySwitch.setPulseLength(350);  
 
-    if(eeprom.data.dhcp == true)
-    Ethernet.begin(eeprom.data.mac, 1);
-    else
+//    if(eeprom.data.dhcp == true)
+//    Ethernet.begin(eeprom.data.mac, 1);
+//    else
     // init ethernet and servers
     Ethernet.begin(eeprom.data.mac, eeprom.data.ip, eeprom.data.gw, eeprom.data.mask);
 
@@ -194,6 +173,45 @@ int i = 0;
 
 // ---------------- Arduino LOOP --------------------
 void loop() {
+  
+  if (mySwitch.available()) {
+    
+    long decimal = mySwitch.getReceivedValue();
+    switchMillis = millis();
+    
+      if (decimal == 5588305 && powerOutlet[eeprom.data.number[0]] == false){
+        switchOutletOn[0] = true;
+      }
+      
+      if (decimal == 5588308 && powerOutlet[eeprom.data.number[0]] == true){
+        switchOutletOff[0] = true;
+      }
+    
+      if (decimal == 5591377 && powerOutlet[eeprom.data.number[1]] == false){
+        switchOutletOn[1] = true;
+      }
+      if (decimal == 5591380 && powerOutlet[eeprom.data.number[1]] == true){
+        switchOutletOff[1] = true;
+      }
+    
+      if (decimal == 5592145 && powerOutlet[eeprom.data.number[2]] == false){
+        switchOutletOn[2] = true;
+      }
+      if (decimal == 5592148 && powerOutlet[eeprom.data.number[2]] == true){
+        switchOutletOff[2] = true;
+      }
+      
+      if (decimal == 5592337 && powerOutlet[eeprom.data.number[3]] == false){
+        switchOutletOn[3] = true;
+      }
+      if (decimal == 5592415 && powerOutlet[eeprom.data.number[3]] == true){
+        switchOutletOff[3] = true;
+      }
+
+    mySwitch.resetAvailable();
+  }
+    
+  
   unsigned long currentMillis = millis(); 
   
   if(switchOutletOn[0] == true && ((currentMillis - switchMillis) > 100)){
@@ -310,6 +328,7 @@ int get_verified_ip(char* sip, byte ip[4]) {
 
 void defaultCmd(WebServer &server, WebServer::ConnectionType type, char *url_tail, bool tail_complete) {
 
+//  Serial.println("DefaultCase");  
   server.httpSuccess();
   server.printP(htmlHead1);
   {
@@ -331,7 +350,7 @@ void defaultCmd(WebServer &server, WebServer::ConnectionType type, char *url_tai
         if (strcmp(name, "schalte") == 0) schalte = true ; 
         }
       }
-      server.print("<meta http-equiv=\"refresh\" content=\"0; URL=index.html\">");
+      //server.print("<meta http-equiv=\"refresh\" content=\"0; URL=index.html\">");
     }
 
   }
@@ -339,7 +358,7 @@ void defaultCmd(WebServer &server, WebServer::ConnectionType type, char *url_tai
     char buf[4];
     
     
-    server.print("<meta http-equiv=\"refresh\" content=\"5; URL=index.html\">");    
+    //server.print("<meta http-equiv=\"refresh\" content=\"5; URL=index.html\">");
     server.printP(htmlHead2);
 
     P(htmlT00a) =
@@ -438,12 +457,12 @@ void netForm(WebServer &server, WebServer::ConnectionType type, char *url_tail, 
     
     server.printP(tdtr);
     server.printP(trtd180);
-//  P(htmlNetForm4) = 
-//    "DHCP:</td><td><input type=checkbox name=\"dh\" value=\"x\"";
-//    server.printP(htmlNetForm4);
-//    
-//   if(eeprom.data.dhcp == true)
-//      server << " checked";
+    P(htmlNetForm4) = 
+    "DHCP:</td><td><input type=checkbox name=\"dh\" value=\"x\"";
+    server.printP(htmlNetForm4);
+    
+   if(eeprom.data.dhcp == true)
+      server << " checked";
       
     server.printP(tdtr);  
     server.printP(submit);
@@ -795,6 +814,7 @@ void confPost(WebServer &server, WebServer::ConnectionType type, char *url_tail,
 }
 
 void web_setup() {
+//    Serial.println("Test");
     webserver.begin();
 
     webserver.setDefaultCommand(&defaultCmd);

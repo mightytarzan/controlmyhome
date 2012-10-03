@@ -1,5 +1,8 @@
 controlmyhome - forked from homecontrol4me 1.1
 
+v0.2
+Support for Intertechno Switches (Thank you Stefen Nürnberger)
+
 v0.1
 - Removed Authentication for now
 - Removed DHCP for now

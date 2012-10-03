@@ -46,16 +46,15 @@ eeprom eeprom;
 
 void setup() {    
     byte mac[] = {  0xDE, 0xAD, 0xBE, 0x11, 0xFE, 0xED };
-    byte ip[] = { 192,168,2,10 };
+    byte ip[] = { 192,168,200,40 };
     byte mask[] = {255,255,255,0};
-    byte gw[] = { 192,168,2,1 };
-    byte svip[] = { 192,168,2,1 };
+    byte gw[] = { 192,168,200,1 };
     boolean dhcp = false;
     eeprom.setMac(mac);
     eeprom.setIp(ip);
     eeprom.setMask(mask);
     eeprom.setGw(gw);
-//    eeprom.setDhcp(dhcp);
+    eeprom.setDhcp(dhcp);
     byte number[10];
     for (int i=0;i<10;i++)
     eeprom.data.number[i] = i+1;
